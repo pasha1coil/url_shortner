@@ -35,6 +35,17 @@ func NewShortnerService(deps Deps) *ShortnerService {
 }
 
 func (s *ShortnerService) CreateShortLink(ctx context.Context, url string) (*model.Response, error) {
+	existURL, err := s.repo.CheckDuplicate(ctx, url)
+	if err != nil && err != repository.ErrLinkNotFound {
+		return nil, err
+	}
+
+	if existURL != "" {
+		return &model.Response{
+			URL: "http://" + s.config.HTTPHost + ":" + s.config.HTTPPort + "/" + existURL,
+		}, nil
+	}
+
 	count, err := s.redisClient.Get(ctx, "count").Result()
 	if err == redis.Nil {
 		err := s.redisClient.Set(ctx, "count", 1, 0).Err()

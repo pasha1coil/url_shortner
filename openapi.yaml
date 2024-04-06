@@ -1,0 +1,87 @@
+openapi: 3.0.0
+info:
+  title: Url_shortner API
+  description: API documentation for the link shortening service
+  version: 1.0.0
+
+tags:
+  - name: main
+    description: main service operations
+paths:
+  /{shortURL}:
+    get:
+      operationId: GetOriginalURL
+      summary: Returns the original URL instead of the shortened one, the shortened one is passed into the url
+      tags:
+        - main
+      parameters:
+        - in: path
+          name: shortURL
+          required: true
+          description: Shortened URL
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+        '404':
+          description: Original link not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /:
+    post:
+      operationId: GetShortURL
+      summary: Shortened URL
+      tags:
+        - main
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: Shortened URL
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string

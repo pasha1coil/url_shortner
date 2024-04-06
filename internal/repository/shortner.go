@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 )
 
 type ShortnerRepo struct {
@@ -24,7 +25,22 @@ func (s *ShortnerRepo) GetOriginalByShort(ctx context.Context, shortURL string) 
 	var originalURL string
 	err := s.db.QueryRowContext(ctx, "SELECT original_url FROM short_links WHERE short_url = $1", shortURL).Scan(&originalURL)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrLinkNotFound
+		}
 		return "", err
 	}
 	return originalURL, nil
+}
+
+func (s *ShortnerRepo) CheckDuplicate(ctx context.Context, originalURL string) (string, error) {
+	var shortURL string
+	err := s.db.QueryRowContext(ctx, "SELECT short_url FROM short_links WHERE original_url = $1", originalURL).Scan(&shortURL)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrLinkNotFound
+		}
+		return "", err
+	}
+	return shortURL, nil
 }

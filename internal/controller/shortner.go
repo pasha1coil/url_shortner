@@ -1,9 +1,11 @@
 package controller
 
 import (
+	"errors"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 	"urlshortner/internal/model"
+	"urlshortner/internal/repository"
 	"urlshortner/internal/service"
 )
 
@@ -47,6 +49,9 @@ func (s *ShortenController) GetOriginalByShort(ctx *fiber.Ctx) error {
 
 	resp, err := s.shortenService.GetOriginalByShort(ctx.Context(), shortenURL)
 	if err != nil {
+		if errors.Is(err, repository.ErrLinkNotFound) {
+			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": repository.ErrLinkNotFound})
+		}
 		s.logger.Error("some server GetOriginalByShort error:", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
