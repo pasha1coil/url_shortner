@@ -13,7 +13,8 @@ import (
 	"urlshortner/pkg/closer"
 )
 
-func Run(ctx context.Context, config *initialize.Config, logger *zap.Logger) error {
+func Run(ctx context.Context, config *initialize.Config, logger *zap.Logger, use bool) error {
+	println(use)
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Error("Recovered from a panic", zap.Any("error", r))
@@ -25,10 +26,19 @@ func Run(ctx context.Context, config *initialize.Config, logger *zap.Logger) err
 
 	shutdownGroup := closer.NewCloserGroup()
 
-	pgDB, err := initialize.InitDB(ctx, config)
-	if err != nil {
-		logger.Error("Error init pg db", zap.Error(err))
-		return err
+	var (
+		err          error
+		pgDB         *initialize.DB
+		shortnerRepo service.SplitRepository
+	)
+
+	if !use {
+		pgDB, err = initialize.InitDB(ctx, config)
+		if err != nil {
+			logger.Error("Error init pg db", zap.Error(err))
+			return err
+		}
+		shutdownGroup.Add(closer.CloserFunc(pgDB.DB.Close))
 	}
 
 	redisClient, err := initialize.Redis(ctx, config)
@@ -37,7 +47,11 @@ func Run(ctx context.Context, config *initialize.Config, logger *zap.Logger) err
 		return err
 	}
 
-	shortnerRepo := repository.NewShortnerRepo(pgDB.DB)
+	if use {
+		shortnerRepo = repository.NewInMemoryRepo()
+	} else {
+		shortnerRepo = repository.NewShortnerRepo(pgDB.DB)
+	}
 
 	shortnerService := service.NewShortnerService(service.Deps{
 		Repo:        shortnerRepo,
@@ -63,7 +77,6 @@ func Run(ctx context.Context, config *initialize.Config, logger *zap.Logger) err
 	server.ListRoutes()
 
 	shutdownGroup.Add(closer.CloserFunc(server.Shutdown))
-	shutdownGroup.Add(closer.CloserFunc(pgDB.DB.Close))
 	shutdownGroup.Add(closer.CloserFunc(redisClient.Close))
 
 	<-ctx.Done()

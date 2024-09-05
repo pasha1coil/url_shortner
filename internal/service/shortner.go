@@ -11,15 +11,21 @@ import (
 	"urlshortner/internal/utils"
 )
 
+type SplitRepository interface {
+	CreateShortLink(ctx context.Context, shortURL string, originalURL string) error
+	GetOriginalByShort(ctx context.Context, shortURL string) (string, error)
+	CheckDuplicate(ctx context.Context, originalURL string) (string, error)
+}
+
 type ShortnerService struct {
-	repo        *repository.ShortnerRepo
+	repo        SplitRepository
 	logger      *zap.Logger
 	config      *initialize.Config
 	redisClient *redis.Client
 }
 
 type Deps struct {
-	Repo        *repository.ShortnerRepo
+	Repo        SplitRepository
 	Logger      *zap.Logger
 	Config      *initialize.Config
 	RedisClient *redis.Client
