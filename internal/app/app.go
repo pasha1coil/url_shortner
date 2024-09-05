@@ -7,7 +7,6 @@ import (
 	"time"
 	"urlshortner/internal/controller"
 	"urlshortner/internal/initialize"
-	"urlshortner/internal/repository"
 	httpserver "urlshortner/internal/server/http"
 	"urlshortner/internal/service"
 	"urlshortner/pkg/closer"
@@ -47,10 +46,12 @@ func Run(ctx context.Context, config *initialize.Config, logger *zap.Logger, use
 		return err
 	}
 
+	allRepo := initialize.InitAllRepo(pgDB)
+
 	if use {
-		shortnerRepo = repository.NewInMemoryRepo()
+		shortnerRepo = allRepo.InMemory
 	} else {
-		shortnerRepo = repository.NewShortnerRepo(pgDB.DB)
+		shortnerRepo = allRepo.Sql
 	}
 
 	shortnerService := service.NewShortnerService(service.Deps{
